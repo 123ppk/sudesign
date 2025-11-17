@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Sudesign.com — AI Smart Store (Final Secure Login)</title>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+<style>
+body{margin:0;font-family:'Poppins',sans-serif;background:#fafafa;color:#333;overflow-x:hidden;}
+header{background:#fd1d9e;color:white;padding:1rem;display:flex;justify-content:space-between;align-items:center;}
+header .logo{font-size:1.4rem;font-weight:600;letter-spacing:1px;}
+header .authBtns button{background:#fff;color:#fd1d9e;border:none;padding:0.5rem 1rem;border-radius:6px;cursor:pointer;font-weight:500;}
+header .authBtns button:hover{opacity:0.9;}
+.container{max-width:1200px;margin:auto;padding:1rem;}
+button{background:#fd1d9e;color:white;border:none;padding:0.6rem 1.2rem;border-radius:8px;cursor:pointer;transition:0.2s;}
+button:hover{opacity:0.9;}
+input,textarea,select{width:100%;padding:0.6rem;margin:0.3rem 0;border:1px solid #ccc;border-radius:8px;}
+.card{background:white;border-radius:0;box-shadow:0 2px 8px rgba(0,0,0,0.08);overflow:hidden;text-align:left;padding:0.8rem;transition:transform 0.2s;position:relative;display:flex;flex-direction:column;}
+/* 🔹 Fixed image ratio to show full image everywhere */
+.card img{width:100%;height:auto;max-height:280px;object-fit:contain;animation:zoomInOut 6s ease-in-out infinite;}
+@keyframes zoomInOut{
+0%{transform:scale(1);}
+50%{transform:scale(1.08);}
+100%{transform:scale(1);}
+}
+.card h3{margin:0.7rem 0 0.5rem 0.3rem;font-size:1rem;font-weight:600;color:#222;}
+.card p{margin:0.2rem 0;color:#555;font-size:0.92rem;word-wrap:break-word;text-align:justify;}
+.card .bottom-btn{margin-top:auto;text-align:center;padding-top:8px;}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;}
+@media(max-width:1100px){.grid{grid-template-columns:repeat(3,1fr);} }
+@media(max-width:800px){.grid{grid-template-columns:repeat(2,1fr);} .card img{max-height:230px;}}
+@media(max-width:480px){.grid{grid-template-columns:1fr;} .card img{max-height:200px;}}
+#adminPanel,#loginPanel{display:none;}
+.small{font-size:0.9rem;color:#6b7280;}
+.popup-bg{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;z-index:999;}
+.popup{background:#fff;padding:20px;border-radius:12px;width:300px;text-align:center;box-shadow:0 4px 10px rgba(0,0,0,0.3);}
+.popup input{width:90%;margin-bottom:10px;}
+footer{text-align:center;background:#fd1d9e;color:#fff;padding:10px 0;font-size:14px;margin-top:30px;}
+.chat-icon{position:fixed;bottom:20px;right:20px;background:#fd1d9e;color:#fff;width:55px;height:55px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;cursor:pointer;box-shadow:0 4px 8px rgba(0,0,0,0.3);z-index:1000;}
+.chat-board{position:fixed;bottom:90px;right:20px;width:300px;background:#fff;border:2px solid #fd1d9e;border-radius:10px;box-shadow:0 4px 10px rgba(0,0,0,0.3);display:none;flex-direction:column;z-index:1001;}
+.chat-header{background:#fd1d9e;color:#fff;padding:8px;font-weight:600;text-align:center;}
+.chat-body{padding:10px;height:220px;overflow-y:auto;font-size:0.9rem;}
+.chat-input{display:flex;padding:8px;gap:6px;}
+.chat-input input{flex:1;border:1px solid #ccc;border-radius:6px;padding:5px;}
+.chat-input button{padding:5px 10px;background:#fd1d9e;color:#fff;border:none;border-radius:6px;}
+.ai-reply{background:#fde4f1;padding:6px 8px;border-radius:6px;margin:4px 0;}
+.user-msg{background:#f0f0f0;padding:6px 8px;border-radius:6px;margin:4px 0;text-align:right;}
+.security-note{font-size:0.8rem;color:#555;text-align:center;background:#fff0f7;padding:4px 0;}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Sudesign.com</div>
+  <div class="authBtns">
+    <button id="loginBtn" onclick="showLogin()">Login</button>
+    <button id="logoutBtn" onclick="logout()" style="display:none;">Logout</button>
+  </div>
+</header>
+
+<div class="container">
+  <div id="loginPanel" style="text-align:center;">
+    <h3>Admin Login</h3>
+    <input type="email" id="loginEmail" placeholder="Email" autocomplete="off" />
+    <input type="password" id="loginPass" placeholder="Password" autocomplete="new-password" />
+    <div style="display:flex;gap:8px;justify-content:center;margin-top:8px">
+      <button onclick="login()">Login</button>
+      <button onclick="cancelLogin()" style="background:#fff;color:#fd1d9e;border:1px solid #f8c7e6">Cancel</button>
+    </div>
+  </div>
+
+  <div id="adminPanel">
+    <h3>Add New Product</h3>
+    <div>
+      <input type="text" id="pName" placeholder="Product Name" />
+      <input type="text" id="pBrand" placeholder="Brand" />
+      <input type="number" id="pPrice" placeholder="Price ₹" />
+      <textarea id="pDesc" placeholder="Short description" rows="3"></textarea>
+      <label class="small">Choose Image</label>
+      <input type="file" id="pImg" accept="image/*" />
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button onclick="addProduct()">Add Product</button>
+    </div>
+    <hr><h4>Your Products</h4>
+    <div id="productList" class="grid"></div>
+  </div>
+
+  <div id="shopPanel">
+    <h3 style="text-align:center">🌸 Welcome to Sudesign 🌸</h3>
+    <div id="shopList" class="grid"></div>
+  </div>
+</div>
+
+<div class="popup-bg" id="payPopup">
+  <div class="popup">
+    <h3>SMS Payment</h3>
+    <p style="color:#fd1d9e;font-weight:600;">Payment not working now<br>Contact support for help.</p>
+    <button onclick="closePayPopup()">OK</button>
+  </div>
+</div>
+
+<div class="chat-icon" onclick="toggleChat()">💬</div>
+<div class="chat-board" id="chatBoard">
+  <div class="chat-header">Secure Chat — Product Inquiry Only</div>
+  <div class="security-note">🔐 Do not share OTP or passwords</div>
+  <div class="chat-body" id="chatBody"></div>
+  <div class="chat-input">
+    <input type="text" id="chatText" placeholder="Ask about product, qty, price..." />
+    <button onclick="sendChat()">Send</button>
+  </div>
+</div>
+
+<footer>© www.sudesign.com | Ph - +91 999999</footer>
+
+<script>
+const firebaseConfig={apiKey:"AIzaSyARRGuy8RIUifqadGxzF3BF3O4MAVFvfyo",authDomain:"gasbooking-95fd5.firebaseapp.com",databaseURL:"https://gasbooking-95fd5-default-rtdb.firebaseio.com",projectId:"gasbooking-95fd5",storageBucket:"gasbooking-95fd5.appspot.com",messagingSenderId:"1025660657409",appId:"1:1025660657409:web:5bf712af78a9632b7ac500"};
+firebase.initializeApp(firebaseConfig);
+const db=firebase.database();
+let allProducts=[];
+
+async function compressImage(file,maxW=400,maxH=400,quality=0.55){
+return new Promise(resolve=>{
+const reader=new FileReader();
+reader.onload=e=>{
+const img=new Image();
+img.onload=()=>{
+let w=img.width,h=img.height;
+if(w>h&&w>maxW){h*=maxW/w;w=maxW;}
+else if(h>maxH){w*=maxH/h;h=maxH;}
+const c=document.createElement('canvas');c.width=w;c.height=h;
+const ctx=c.getContext('2d');ctx.drawImage(img,0,0,w,h);
+resolve(c.toDataURL('image/jpeg',quality));
+};
+img.onerror=()=>resolve('');img.src=e.target.result;
+};
+reader.readAsDataURL(file);
+});
+}
+
+function showLogin(){document.getElementById('shopPanel').style.display='none';document.getElementById('loginPanel').style.display='block';}
+function cancelLogin(){document.getElementById('loginPanel').style.display='none';document.getElementById('shopPanel').style.display='block';}
+function logout(){document.getElementById('adminPanel').style.display='none';document.getElementById('shopPanel').style.display='block';document.getElementById('logoutBtn').style.display='none';document.getElementById('loginBtn').style.display='inline-block';}
+function login(){
+const e=document.getElementById('loginEmail').value.trim();
+const p=document.getElementById('loginPass').value.trim();
+if(e==='saree@gmail.com'&&p==='123456'){
+document.getElementById('loginPanel').style.display='none';
+document.getElementById('shopPanel').style.display='none';
+document.getElementById('adminPanel').style.display='block';
+document.getElementById('loginBtn').style.display='none';
+document.getElementById('logoutBtn').style.display='inline-block';
+}else alert('Invalid login');
+}
+
+async function addProduct(){
+const n=document.getElementById('pName').value.trim();
+const b=document.getElementById('pBrand').value.trim();
+const pr=document.getElementById('pPrice').value.trim();
+const d=document.getElementById('pDesc').value.trim();
+const f=document.getElementById('pImg').files[0];
+if(!n||!b||!pr||!d){alert('Fill all fields');return;}
+let imgData='';
+if(f){imgData=await compressImage(f);}else imgData='';
+const id=db.ref('products').push().key;
+const pObj={id,name:n,brand:b,price:pr,desc:d,img:imgData,createdAt:Date.now()};
+await db.ref('products/'+id).set(pObj);
+alert('Product added!');
+}
+
+function delProduct(id){if(!confirm('Delete this product?'))return;db.ref('products/'+id).remove();}
+
+db.ref('products').on('value',snap=>{
+const data=snap.val()||{};
+let products=Object.values(data);
+products=products.filter(p=>!['g','3','33'].includes(p.name.trim().toLowerCase()));
+products.sort((a,b)=>b.createdAt-a.createdAt);
+allProducts=products;
+renderShop(products);
+renderAdmin(products);
+});
+
+function renderShop(items){
+const el=document.getElementById('shopList');el.innerHTML='';
+items.forEach(p=>{
+el.innerHTML+=`
+<div class="card">
+<img src="${p.img||''}" alt="">
+<h3>${p.name}</h3>
+<p><b>${p.brand}</b></p>
+<p>${p.desc}</p>
+<p style="font-weight:700">₹ ${p.price}</p>
+<div class="bottom-btn"><button onclick="openPayPopup()">Add to Cart</button></div>
+</div>`;
+});
+}
+
+function renderAdmin(items){
+const el=document.getElementById('productList');el.innerHTML='';
+items.forEach(p=>{
+el.innerHTML+=`
+<div class="card">
+<img src="${p.img||''}" alt="">
+<h3>${p.name}</h3>
+<p><b>${p.brand}</b></p>
+<p>₹ ${p.price}</p>
+<button onclick="delProduct('${p.id}')">Delete</button>
+</div>`;
+});
+}
+
+function openPayPopup(){document.getElementById('payPopup').style.display='flex';}
+function closePayPopup(){document.getElementById('payPopup').style.display='none';}
+
+/* Secure AI Chat */
+function toggleChat(){
+const c=document.getElementById('chatBoard');
+c.style.display=(c.style.display==='flex')?'none':'flex';
+}
+
+function sendChat(){
+const txt=document.getElementById('chatText').value.trim();
+if(txt==='')return;
+const chatBody=document.getElementById('chatBody');
+const msg=document.createElement('div');
+msg.className='user-msg';
+msg.textContent='You: '+txt;
+chatBody.appendChild(msg);
+document.getElementById('chatText').value='';
+
+let reply='❌ Only product-related queries are allowed.';
+const lower=txt.toLowerCase();
+const product=allProducts.find(p=>lower.includes(p.name.toLowerCase()));
+
+if(product){
+if(lower.includes('price')) reply=`💬 The price of ${product.name} is ₹${product.price}.`;
+else if(lower.includes('brand')) reply=`🏷️ Brand: ${product.brand}.`;
+else if(lower.includes('qty')||lower.includes('quantity')) reply=`🧺 Please mention how many ${product.name} you want.`;
+else if(lower.includes('product')||lower.includes('available')) reply=`✅ Yes, ${product.name} is available in stock.`;
+else if(lower.includes('address')) reply='📦 Please share your delivery address and city.';
+else if(lower.includes('payment')) reply='💳 Payment via SMS confirmation. You’ll be contacted shortly.';
+else reply=`🛍️ ${product.name} is available for ₹${product.price}. Would you like to order it?`;
+}
+
+const ai=document.createElement('div');
+ai.className='ai-reply';
+ai.textContent=reply;
+chatBody.appendChild(ai);
+chatBody.scrollTop=chatBody.scrollHeight;
+}
+</script>
+</body>
+</html>
